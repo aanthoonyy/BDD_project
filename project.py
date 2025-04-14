@@ -1,96 +1,175 @@
 from pyeda.inter import bddvars, expr2bdd, And, Or, expr
 
-i = bddvars('i', 5)
-j = bddvars('j', 5)
+# creating boolean decision diagrams variables
+iVars = bddvars('i', 5)
+jVars = bddvars('j', 5)
 
-def num_to_expr(num, var):
+# this function converts a number into a boolean expression based on the given variable list
+# the number is represented in a 5-bit binary string and then mapped to either the variable or its negation
+def numToExpr(num, var):
+    # convert the number to a 5-digit binary string
     binary = format(num, '05b')
     terms = []
     for idx, bit in enumerate(binary):
-        if bit == '1':
+        if bit == '1': # if the bit is a 1, append the var to terms
             terms.append(var[idx])
-        else:
+        else:  # but if the bit is 0, append the negation variable
             terms.append(~var[idx])
     return And(*terms)
 
-def num_to_dict(num, var):
+# this function creates a dictionary mapping each variable to its binary value based on the number's 5-bit binary representation
+def numToDict(num, var):
+    # convert the number to a 5-digit binary string
     binary = format(num, '05b')
-    return {var[idx]: int(bit) for idx, bit in enumerate(binary)}
+    # use a dictionary comprehension to map each variable to its value
+    mapping = {}
+    for idx, bit in enumerate(binary):
+        mapping[var[idx]] = int(bit)
+    return mapping
 
 
-def build_R_BDD():
-    edge_exprs = []
+# this function builds the bdd for the double r
+def buildBdd():
+    edgeExprs = []
     for source in range(32):
         target1 = (source + 3) % 32
         target2 = (source + 8) % 32
-        edge_expr1 = And(num_to_expr(source, i), num_to_expr(target1, j))
-        edge_expr2 = And(num_to_expr(source, i), num_to_expr(target2, j))
-        edge_exprs.extend([edge_expr1, edge_expr2])
-    relation_expr = Or(*edge_exprs)
-    return expr2bdd(relation_expr)
+        # create the expression for the edge from source to target1
+        edgeExpr1 = And(numToExpr(source, iVars), numToExpr(target1, jVars))
+        # create the expression for the edge from source to target2
+        edgeExpr2 = And(numToExpr(source, iVars), numToExpr(target2, jVars))
+        # add both the expressions to the list
+        edgeExprs.extend([edgeExpr1, edgeExpr2])
+    
+    relationExpr = Or(*edgeExprs)
+    
+    return expr2bdd(relationExpr) # convert the boolean expression to a bdd and return it
 
-RR_BDD = build_R_BDD()
+# this function builds a bdd for the evens
+def buildEvenBdd():
+    evenExprs = []
+    for node in range(32):
+        if node % 2 == 0:
+            expr_value = numToExpr(node, jVars) # convert the number into a boolean expression
+            evenExprs.append(expr_value)
+    # combine the expressions using pyeda Or
+    evenExpr = Or(*evenExprs)
+    # convert the boolean expression to a bdd and return it
+    return expr2bdd(evenExpr)
 
-def build_even_BDD():
-    even_exprs = [num_to_expr(node, j) for node in range(32) if node % 2 == 0]
-    even_expr = Or(*even_exprs)
-    return expr2bdd(even_expr)
+# this function builds a bdd for the property prime, similar to the even one
+def buildPrimeBdd():
+    primeNodes = {3, 5, 7, 11, 13, 17, 19, 23, 29, 31}
+    primeExprs = []
+    for node in primeNodes:
+        expr_value = numToExpr(node, iVars)
+        primeExprs.append(expr_value)
+    # combine the prime expressions using disjunction (or)
+    primeExpr = Or(*primeExprs)
+    # convert the boolean expression to a bdd and return it
+    return expr2bdd(primeExpr)
 
-EV_EN_BDD = build_even_BDD()
+rrBdd = buildBdd()
+evenBdd = buildEvenBdd()
+primeBdd = buildPrimeBdd()
 
-def build_prime_BDD():
-    prime_nodes = {3, 5, 7, 11, 13, 17, 19, 23, 29, 31}
-    prime_exprs = [num_to_expr(node, i) for node in prime_nodes]
-    prime_expr = Or(*prime_exprs)
-    return expr2bdd(prime_expr)
-
-PRIME_BDD = build_prime_BDD()
-
-def test_RR(source, target):
+# test function to check if a source and target are reachable in the relation rr'
+def testRr(source, target):
     mapping = {}
-    mapping.update(num_to_dict(source, i))
-    mapping.update(num_to_dict(target, j))
-    return bool(RR_BDD.restrict(mapping))
+    mapping.update(numToDict(source, iVars))
+    mapping.update(numToDict(target, jVars))
+    # restrict the bdd using the mapping, and return true if the resulting bdd is satisfiable
+    return bool(rrBdd.restrict(mapping))
 
-def test_even(node):
-    mapping = num_to_dict(node, j)
-    return bool(EV_EN_BDD.restrict(mapping))
+# test function to check if a node in j is even by restricting the even bdd
+# restricting checks if the mapping satisfies the even property
+def testEven(node):
+    mapping = numToDict(node, jVars)
+    # check if the node satisfies the even property
+    return bool(evenBdd.restrict(mapping))
 
-def test_prime(node):
-    mapping = num_to_dict(node, i)
-    return bool(PRIME_BDD.restrict(mapping))
+# test function to check if a node in i is prime by restricting the prime bdd
+def testPrime(node):
+    mapping = numToDict(node, iVars)
+    # return true if the mapping satisfies the prime property
+    return bool(primeBdd.restrict(mapping))
 
-def build_RR2_BDD():
+# this function composes two relations takes in a and b via an intermediate variable set z
+def composeRelations(A, B, z):
+    subMappingA = {}
+    for k in range(5):
+        subMappingA[jVars[k]] = z[k]
+    A_substituted = A.compose(subMappingA)
+    
+    subMappingB = {}
+    for k in range(5):
+        subMappingB[iVars[k]] = z[k]
+    B_substituted = B.compose(subMappingB)
+    
+    andResult = A_substituted & B_substituted
+    
+    result = andResult.smoothing(z)
+    
+    return result
+
+# this function builds the bdd for twostep reachability using the composition of rr with itself
+def buildRr2Bdd():
     z = bddvars('z', 5)
-    R1 = RR_BDD.compose({j[k]: z[k] for k in range(5)})
-    R2 = RR_BDD.compose({i[k]: z[k] for k in range(5)})
-    return (R1 & R2).smoothing(z)
+    return composeRelations(rrBdd, rrBdd, z)
 
-RR2_BDD = build_RR2_BDD()
+# build the two step reachability relation bdd rr2
+rr2Bdd = buildRr2Bdd()
 
-def test_RR2(source, target):
+# function to test the two step reachability between a source and target
+# returns bool
+def testRr2(source, target):
     mapping = {}
-    mapping.update(num_to_dict(source, i))
-    mapping.update(num_to_dict(target, j))
-    return bool(RR2_BDD.restrict(mapping))
+    mapping.update(numToDict(source, iVars))
+    mapping.update(numToDict(target, jVars))
+    return bool(rr2Bdd.restrict(mapping))
 
-def compose_relations(A, B, z):
-    return (A.compose({j[k]: z[k] for k in range(5)}) &
-            B.compose({i[k]: z[k] for k in range(5)})).smoothing(z)
-
-def transitive_closure(rel):
+# this function computes the transitive closure of a given relation bdd 'rel'
+def transitiveClosure(rel):
     z = bddvars('z', 5)
     closure = rel
     while True:
-        new_closure = closure | compose_relations(closure, rel, z)
-        if new_closure.equivalent(closure):
+        newClosure = closure | composeRelations(closure, rel, z) # compose the new closure with the original relation or compose a relation
+        # if the new closure is equivalent to the old one break outta the loop
+        if newClosure.equivalent(closure):
             break
-        closure = new_closure
+        closure = newClosure
     return closure
 
-RR2star_BDD = transitive_closure(RR2_BDD)
+# compute the transitive closure of the two-step reachability bdd and store in rr2StarBdd
+rr2StarBdd = transitiveClosure(rr2Bdd)
 
-def verify_statementA():
-    reachable_even_BDD = RR2star_BDD & EV_EN_BDD
-    reachable_even_proj = reachable_even_BDD.smoothing(j)
-    return (PRIME_BDD & ~reachable_even_proj).is_zero()
+# this function verifies that every prime node is reachable from an even node in the relation
+def verifyStatementA():
+    reachableEvenBdd = rr2StarBdd & evenBdd 
+    
+    reachableEvenProj = reachableEvenBdd.smoothing(jVars)
+    
+    testBdd = primeBdd & ~reachableEvenProj
+    
+    return testBdd.is_zero()
+
+result = verifyStatementA()
+
+# these are just the test cases to check if the functions work like the pdf say
+def runTests():
+    print("test cases for r, even, and prime:")
+    print(f"rr(27, 3) is true: {testRr(27, 3)}")
+    print(f"rr(16, 20) is false: {testRr(16, 20)}")
+    print(f"even(14) is true: {testEven(14)}")
+    print(f"even(13) is false: {testEven(13)}")
+    print(f"prime(7) is true: {testPrime(7)}")
+    print(f"prime(2) is false: {testPrime(2)}")
+    
+    print("\ntest cases for rr2 (two-step reachability):")
+    print(f"rr2(27, 6) is true: {testRr2(27, 6)}")
+    print(f"rr2(27, 9) is false: {testRr2(27, 9)}")
+    
+    print(f"\nverification of statementa: {verifyStatementA()}")
+
+if __name__ == "__main__":
+    runTests()

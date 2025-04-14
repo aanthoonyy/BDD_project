@@ -1,0 +1,240 @@
+[
+    {
+        "label": "bddvars",
+        "importPath": "pyeda.inter",
+        "description": "pyeda.inter",
+        "isExtraImport": true,
+        "detail": "pyeda.inter",
+        "documentation": {}
+    },
+    {
+        "label": "expr2bdd",
+        "importPath": "pyeda.inter",
+        "description": "pyeda.inter",
+        "isExtraImport": true,
+        "detail": "pyeda.inter",
+        "documentation": {}
+    },
+    {
+        "label": "And",
+        "importPath": "pyeda.inter",
+        "description": "pyeda.inter",
+        "isExtraImport": true,
+        "detail": "pyeda.inter",
+        "documentation": {}
+    },
+    {
+        "label": "Or",
+        "importPath": "pyeda.inter",
+        "description": "pyeda.inter",
+        "isExtraImport": true,
+        "detail": "pyeda.inter",
+        "documentation": {}
+    },
+    {
+        "label": "expr",
+        "importPath": "pyeda.inter",
+        "description": "pyeda.inter",
+        "isExtraImport": true,
+        "detail": "pyeda.inter",
+        "documentation": {}
+    },
+    {
+        "label": "numToExpr",
+        "kind": 2,
+        "importPath": "project",
+        "description": "project",
+        "peekOfCode": "def numToExpr(num, var):\n    # convert the number to a 5-digit binary string\n    binary = format(num, '05b')\n    terms = []\n    for idx, bit in enumerate(binary):\n        if bit == '1': # if the bit is a 1, append the var to terms\n            terms.append(var[idx])\n        else:  # but if the bit is 0, append the negation variable\n            terms.append(~var[idx])\n    return And(*terms)",
+        "detail": "project",
+        "documentation": {}
+    },
+    {
+        "label": "numToDict",
+        "kind": 2,
+        "importPath": "project",
+        "description": "project",
+        "peekOfCode": "def numToDict(num, var):\n    # convert the number to a 5-digit binary string\n    binary = format(num, '05b')\n    # use a dictionary comprehension to map each variable to its value\n    mapping = {}\n    for idx, bit in enumerate(binary):\n        mapping[var[idx]] = int(bit)\n    return mapping\n# this function builds the bdd for the double r\ndef buildBdd():",
+        "detail": "project",
+        "documentation": {}
+    },
+    {
+        "label": "buildBdd",
+        "kind": 2,
+        "importPath": "project",
+        "description": "project",
+        "peekOfCode": "def buildBdd():\n    edgeExprs = []\n    for source in range(32):\n        target1 = (source + 3) % 32\n        target2 = (source + 8) % 32\n        # create the expression for the edge from source to target1\n        edgeExpr1 = And(numToExpr(source, iVars), numToExpr(target1, jVars))\n        # create the expression for the edge from source to target2\n        edgeExpr2 = And(numToExpr(source, iVars), numToExpr(target2, jVars))\n        # add both the expressions to the list",
+        "detail": "project",
+        "documentation": {}
+    },
+    {
+        "label": "buildEvenBdd",
+        "kind": 2,
+        "importPath": "project",
+        "description": "project",
+        "peekOfCode": "def buildEvenBdd():\n    evenExprs = []\n    for node in range(32):\n        if node % 2 == 0:\n            expr_value = numToExpr(node, jVars) # convert the number into a boolean expression\n            evenExprs.append(expr_value)\n    # combine the expressions using pyeda Or\n    evenExpr = Or(*evenExprs)\n    # convert the boolean expression to a bdd and return it\n    return expr2bdd(evenExpr)",
+        "detail": "project",
+        "documentation": {}
+    },
+    {
+        "label": "buildPrimeBdd",
+        "kind": 2,
+        "importPath": "project",
+        "description": "project",
+        "peekOfCode": "def buildPrimeBdd():\n    primeNodes = {3, 5, 7, 11, 13, 17, 19, 23, 29, 31}\n    primeExprs = []\n    for node in primeNodes:\n        expr_value = numToExpr(node, iVars)\n        primeExprs.append(expr_value)\n    # combine the prime expressions using disjunction (or)\n    primeExpr = Or(*primeExprs)\n    # convert the boolean expression to a bdd and return it\n    return expr2bdd(primeExpr)",
+        "detail": "project",
+        "documentation": {}
+    },
+    {
+        "label": "testRr",
+        "kind": 2,
+        "importPath": "project",
+        "description": "project",
+        "peekOfCode": "def testRr(source, target):\n    mapping = {}\n    mapping.update(numToDict(source, iVars))\n    mapping.update(numToDict(target, jVars))\n    # restrict the bdd using the mapping, and return true if the resulting bdd is satisfiable\n    return bool(rrBdd.restrict(mapping))\n# test function to check if a node in j is even by restricting the even bdd\n# restricting checks if the mapping satisfies the even property\ndef testEven(node):\n    mapping = numToDict(node, jVars)",
+        "detail": "project",
+        "documentation": {}
+    },
+    {
+        "label": "testEven",
+        "kind": 2,
+        "importPath": "project",
+        "description": "project",
+        "peekOfCode": "def testEven(node):\n    mapping = numToDict(node, jVars)\n    # check if the node satisfies the even property\n    return bool(evenBdd.restrict(mapping))\n# test function to check if a node in i is prime by restricting the prime bdd\ndef testPrime(node):\n    mapping = numToDict(node, iVars)\n    # return true if the mapping satisfies the prime property\n    return bool(primeBdd.restrict(mapping))\n# this function composes two relations takes in a and b via an intermediate variable set z",
+        "detail": "project",
+        "documentation": {}
+    },
+    {
+        "label": "testPrime",
+        "kind": 2,
+        "importPath": "project",
+        "description": "project",
+        "peekOfCode": "def testPrime(node):\n    mapping = numToDict(node, iVars)\n    # return true if the mapping satisfies the prime property\n    return bool(primeBdd.restrict(mapping))\n# this function composes two relations takes in a and b via an intermediate variable set z\ndef composeRelations(A, B, z):\n    subMappingA = {}\n    for k in range(5):\n        subMappingA[jVars[k]] = z[k]\n    A_substituted = A.compose(subMappingA)",
+        "detail": "project",
+        "documentation": {}
+    },
+    {
+        "label": "composeRelations",
+        "kind": 2,
+        "importPath": "project",
+        "description": "project",
+        "peekOfCode": "def composeRelations(A, B, z):\n    subMappingA = {}\n    for k in range(5):\n        subMappingA[jVars[k]] = z[k]\n    A_substituted = A.compose(subMappingA)\n    subMappingB = {}\n    for k in range(5):\n        subMappingB[iVars[k]] = z[k]\n    B_substituted = B.compose(subMappingB)\n    andResult = A_substituted & B_substituted",
+        "detail": "project",
+        "documentation": {}
+    },
+    {
+        "label": "buildRr2Bdd",
+        "kind": 2,
+        "importPath": "project",
+        "description": "project",
+        "peekOfCode": "def buildRr2Bdd():\n    z = bddvars('z', 5)\n    return composeRelations(rrBdd, rrBdd, z)\n# build the two step reachability relation bdd rr2\nrr2Bdd = buildRr2Bdd()\n# function to test the two step reachability between a source and target\n# returns bool\ndef testRr2(source, target):\n    mapping = {}\n    mapping.update(numToDict(source, iVars))",
+        "detail": "project",
+        "documentation": {}
+    },
+    {
+        "label": "testRr2",
+        "kind": 2,
+        "importPath": "project",
+        "description": "project",
+        "peekOfCode": "def testRr2(source, target):\n    mapping = {}\n    mapping.update(numToDict(source, iVars))\n    mapping.update(numToDict(target, jVars))\n    return bool(rr2Bdd.restrict(mapping))\n# this function computes the transitive closure of a given relation bdd 'rel'\ndef transitiveClosure(rel):\n    z = bddvars('z', 5)\n    closure = rel\n    while True:",
+        "detail": "project",
+        "documentation": {}
+    },
+    {
+        "label": "transitiveClosure",
+        "kind": 2,
+        "importPath": "project",
+        "description": "project",
+        "peekOfCode": "def transitiveClosure(rel):\n    z = bddvars('z', 5)\n    closure = rel\n    while True:\n        newClosure = closure | composeRelations(closure, rel, z) # compose the new closure with the original relation or compose a relation\n        # if the new closure is equivalent to the old one break outta the loop\n        if newClosure.equivalent(closure):\n            break\n        closure = newClosure\n    return closure",
+        "detail": "project",
+        "documentation": {}
+    },
+    {
+        "label": "verifyStatementA",
+        "kind": 2,
+        "importPath": "project",
+        "description": "project",
+        "peekOfCode": "def verifyStatementA():\n    reachableEvenBdd = rr2StarBdd & evenBdd \n    reachableEvenProj = reachableEvenBdd.smoothing(jVars)\n    testBdd = primeBdd & ~reachableEvenProj\n    return testBdd.is_zero()\nresult = verifyStatementA()\n# these are just the test cases to check if the functions work like the pdf say\ndef runTests():\n    print(\"test cases for r, even, and prime:\")\n    print(f\"rr(27, 3) is true: {testRr(27, 3)}\")",
+        "detail": "project",
+        "documentation": {}
+    },
+    {
+        "label": "runTests",
+        "kind": 2,
+        "importPath": "project",
+        "description": "project",
+        "peekOfCode": "def runTests():\n    print(\"test cases for r, even, and prime:\")\n    print(f\"rr(27, 3) is true: {testRr(27, 3)}\")\n    print(f\"rr(16, 20) is false: {testRr(16, 20)}\")\n    print(f\"even(14) is true: {testEven(14)}\")\n    print(f\"even(13) is false: {testEven(13)}\")\n    print(f\"prime(7) is true: {testPrime(7)}\")\n    print(f\"prime(2) is false: {testPrime(2)}\")\n    print(\"\\ntest cases for rr2 (two-step reachability):\")\n    print(f\"rr2(27, 6) is true: {testRr2(27, 6)}\")",
+        "detail": "project",
+        "documentation": {}
+    },
+    {
+        "label": "iVars",
+        "kind": 5,
+        "importPath": "project",
+        "description": "project",
+        "peekOfCode": "iVars = bddvars('i', 5)\njVars = bddvars('j', 5)\n# this function converts a number into a boolean expression based on the given variable list\n# the number is represented in a 5-bit binary string and then mapped to either the variable or its negation\ndef numToExpr(num, var):\n    # convert the number to a 5-digit binary string\n    binary = format(num, '05b')\n    terms = []\n    for idx, bit in enumerate(binary):\n        if bit == '1': # if the bit is a 1, append the var to terms",
+        "detail": "project",
+        "documentation": {}
+    },
+    {
+        "label": "jVars",
+        "kind": 5,
+        "importPath": "project",
+        "description": "project",
+        "peekOfCode": "jVars = bddvars('j', 5)\n# this function converts a number into a boolean expression based on the given variable list\n# the number is represented in a 5-bit binary string and then mapped to either the variable or its negation\ndef numToExpr(num, var):\n    # convert the number to a 5-digit binary string\n    binary = format(num, '05b')\n    terms = []\n    for idx, bit in enumerate(binary):\n        if bit == '1': # if the bit is a 1, append the var to terms\n            terms.append(var[idx])",
+        "detail": "project",
+        "documentation": {}
+    },
+    {
+        "label": "rrBdd",
+        "kind": 5,
+        "importPath": "project",
+        "description": "project",
+        "peekOfCode": "rrBdd = buildBdd()\nevenBdd = buildEvenBdd()\nprimeBdd = buildPrimeBdd()\n# test function to check if a source and target are reachable in the relation rr'\ndef testRr(source, target):\n    mapping = {}\n    mapping.update(numToDict(source, iVars))\n    mapping.update(numToDict(target, jVars))\n    # restrict the bdd using the mapping, and return true if the resulting bdd is satisfiable\n    return bool(rrBdd.restrict(mapping))",
+        "detail": "project",
+        "documentation": {}
+    },
+    {
+        "label": "evenBdd",
+        "kind": 5,
+        "importPath": "project",
+        "description": "project",
+        "peekOfCode": "evenBdd = buildEvenBdd()\nprimeBdd = buildPrimeBdd()\n# test function to check if a source and target are reachable in the relation rr'\ndef testRr(source, target):\n    mapping = {}\n    mapping.update(numToDict(source, iVars))\n    mapping.update(numToDict(target, jVars))\n    # restrict the bdd using the mapping, and return true if the resulting bdd is satisfiable\n    return bool(rrBdd.restrict(mapping))\n# test function to check if a node in j is even by restricting the even bdd",
+        "detail": "project",
+        "documentation": {}
+    },
+    {
+        "label": "primeBdd",
+        "kind": 5,
+        "importPath": "project",
+        "description": "project",
+        "peekOfCode": "primeBdd = buildPrimeBdd()\n# test function to check if a source and target are reachable in the relation rr'\ndef testRr(source, target):\n    mapping = {}\n    mapping.update(numToDict(source, iVars))\n    mapping.update(numToDict(target, jVars))\n    # restrict the bdd using the mapping, and return true if the resulting bdd is satisfiable\n    return bool(rrBdd.restrict(mapping))\n# test function to check if a node in j is even by restricting the even bdd\n# restricting checks if the mapping satisfies the even property",
+        "detail": "project",
+        "documentation": {}
+    },
+    {
+        "label": "rr2Bdd",
+        "kind": 5,
+        "importPath": "project",
+        "description": "project",
+        "peekOfCode": "rr2Bdd = buildRr2Bdd()\n# function to test the two step reachability between a source and target\n# returns bool\ndef testRr2(source, target):\n    mapping = {}\n    mapping.update(numToDict(source, iVars))\n    mapping.update(numToDict(target, jVars))\n    return bool(rr2Bdd.restrict(mapping))\n# this function computes the transitive closure of a given relation bdd 'rel'\ndef transitiveClosure(rel):",
+        "detail": "project",
+        "documentation": {}
+    },
+    {
+        "label": "rr2StarBdd",
+        "kind": 5,
+        "importPath": "project",
+        "description": "project",
+        "peekOfCode": "rr2StarBdd = transitiveClosure(rr2Bdd)\n# this function verifies that every prime node is reachable from an even node in the relation\ndef verifyStatementA():\n    reachableEvenBdd = rr2StarBdd & evenBdd \n    reachableEvenProj = reachableEvenBdd.smoothing(jVars)\n    testBdd = primeBdd & ~reachableEvenProj\n    return testBdd.is_zero()\nresult = verifyStatementA()\n# these are just the test cases to check if the functions work like the pdf say\ndef runTests():",
+        "detail": "project",
+        "documentation": {}
+    },
+    {
+        "label": "result",
+        "kind": 5,
+        "importPath": "project",
+        "description": "project",
+        "peekOfCode": "result = verifyStatementA()\n# these are just the test cases to check if the functions work like the pdf say\ndef runTests():\n    print(\"test cases for r, even, and prime:\")\n    print(f\"rr(27, 3) is true: {testRr(27, 3)}\")\n    print(f\"rr(16, 20) is false: {testRr(16, 20)}\")\n    print(f\"even(14) is true: {testEven(14)}\")\n    print(f\"even(13) is false: {testEven(13)}\")\n    print(f\"prime(7) is true: {testPrime(7)}\")\n    print(f\"prime(2) is false: {testPrime(2)}\")",
+        "detail": "project",
+        "documentation": {}
+    }
+]
