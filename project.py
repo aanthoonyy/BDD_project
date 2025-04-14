@@ -27,7 +27,6 @@ def numToDict(num, var):
         mapping[var[idx]] = int(bit)
     return mapping
 
-
 # this function builds the bdd for the double r
 def buildBdd():
     edgeExprs = []
@@ -73,26 +72,6 @@ rrBdd = buildBdd()
 evenBdd = buildEvenBdd()
 primeBdd = buildPrimeBdd()
 
-# test function to check if a source and target are reachable in the relation rr'
-def testRr(source, target):
-    mapping = {}
-    mapping.update(numToDict(source, iVars))
-    mapping.update(numToDict(target, jVars))
-    # restrict the bdd using the mapping, and return true if the resulting bdd is satisfiable
-    return bool(rrBdd.restrict(mapping))
-
-# test function to check if a node in j is even by restricting the even bdd
-# restricting checks if the mapping satisfies the even property
-def testEven(node):
-    mapping = numToDict(node, jVars)
-    # check if the node satisfies the even property
-    return bool(evenBdd.restrict(mapping))
-
-# test function to check if a node in i is prime by restricting the prime bdd
-def testPrime(node):
-    mapping = numToDict(node, iVars)
-    # return true if the mapping satisfies the prime property
-    return bool(primeBdd.restrict(mapping))
 
 # this function composes two relations takes in a and b via an intermediate variable set z
 def composeRelations(A, B, z):
@@ -154,6 +133,28 @@ def verifyStatementA():
     return testBdd.is_zero()
 
 result = verifyStatementA()
+
+# test function to check if a source and target are reachable in the relation rr'
+def testRr(source, target):
+    mapping = {}
+    mapping.update(numToDict(source, iVars))
+    mapping.update(numToDict(target, jVars))
+    # restrict the bdd using the mapping, and return true if the resulting bdd is satisfiable
+    return bool(rrBdd.restrict(mapping))
+
+# test function to check if a node in j is even by restricting the even bdd
+# restricting checks if the mapping satisfies the even property
+def testEven(node):
+    mapping = numToDict(node, jVars)
+    # check if the node satisfies the even property
+    return bool(evenBdd.restrict(mapping))
+
+# test function to check if a node in i is prime by restricting the prime bdd
+def testPrime(node):
+    mapping = numToDict(node, iVars)
+    # return true if the mapping satisfies the prime property
+    return bool(primeBdd.restrict(mapping))
+
 
 # these are just the test cases to check if the functions work like the pdf say
 def runTests():
